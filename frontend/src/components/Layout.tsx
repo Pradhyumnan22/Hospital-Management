@@ -7,6 +7,7 @@ import {
   LogOut,
   Sparkles,
   Stethoscope,
+  ScrollText,
   UserRound,
   Users
 } from "lucide-react";
@@ -48,6 +49,17 @@ export function Layout({ children }: { children: ReactNode }) {
               {link.label}
             </NavLink>
           ))}
+          {user?.role === "ADMIN" && (
+            <NavLink
+              to="/audit"
+              className={({ isActive }) =>
+                `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? "bg-teal-600 text-white" : "text-slate-300 hover:bg-slate-800"}`
+              }
+            >
+              <ScrollText size={16} />
+              Audit
+            </NavLink>
+          )}
           {user?.role === "ADMIN" && (
             <NavLink
               to="/staff"

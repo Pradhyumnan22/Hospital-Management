@@ -28,6 +28,7 @@ import com.hospital.bedmgmt.repo.PatientRepository;
 import com.hospital.bedmgmt.repo.UserAccountRepository;
 import com.hospital.bedmgmt.repo.WardRepository;
 import com.hospital.bedmgmt.web.ApiDtos.AdmissionResponse;
+import com.hospital.bedmgmt.web.ApiDtos.AuditResponse;
 import com.hospital.bedmgmt.web.ApiDtos.AllocateRequest;
 import com.hospital.bedmgmt.web.ApiDtos.BedRequest;
 import com.hospital.bedmgmt.web.ApiDtos.BedResponse;
@@ -111,6 +112,16 @@ public class HospitalServices {
     }
 
     @Transactional
+    public void deletePatient(Long id, String actor) {
+        Patient patient = requirePatient(id);
+        if (admissions.existsByPatient_Id(id)) {
+            throw new ApiException(HttpStatus.CONFLICT, "This patient has admission history and cannot be deleted");
+        }
+        patients.delete(patient);
+        audit.record(actor, "DELETE_PATIENT", "patient", String.valueOf(id), patient.getMedicalRecordNumber());
+    }
+
+    @Transactional
     public PatientResponse updatePatient(Long id, PatientRequest request, String actor) {
         Patient patient = requirePatient(id);
         patients.findByMedicalRecordNumber(request.medicalRecordNumber())
@@ -139,6 +150,16 @@ public class HospitalServices {
         Ward saved = wards.save(ward);
         audit.record(actor, "CREATE_WARD", "ward", String.valueOf(saved.getId()), saved.getCode());
         return toWard(saved);
+    }
+
+    @Transactional
+    public void deleteWard(Long id, String actor) {
+        Ward ward = wards.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Ward not found"));
+        if (beds.existsByWard_Id(id)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Remove this ward's beds before deleting the ward");
+        }
+        wards.delete(ward);
+        audit.record(actor, "DELETE_WARD", "ward", String.valueOf(id), ward.getCode());
     }
 
     @Transactional
@@ -178,6 +199,17 @@ public class HospitalServices {
         } catch (DataIntegrityViolationException ex) {
             throw new ApiException(HttpStatus.CONFLICT, "Bed code already exists in this ward");
         }
+    }
+
+    @Transactional
+    public void deleteBed(Long id, String actor) {
+        Bed bed = beds.findByIdForUpdate(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bed not found"));
+        if (bed.getState() == BedState.OCCUPIED || admissions.existsByBed_Id(id)) {
+            throw new ApiException(HttpStatus.CONFLICT, "A bed with admission history cannot be deleted");
+        }
+        String code = bed.getBedCode();
+        beds.delete(bed);
+        audit.record(actor, "DELETE_BED", "bed", String.valueOf(id), code);
     }
 
     @Transactional
@@ -337,6 +369,11 @@ public class HospitalServices {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Notification not found"));
         notification.setAcknowledged(true);
         return toNotification(notification);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AuditResponse> listAudit() {
+        return audit.latest();
     }
 
     @Transactional(readOnly = true)

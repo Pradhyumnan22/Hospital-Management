@@ -39,6 +39,17 @@ export function BedsPage() {
     }
   }
 
+  async function remove(bed: Bed) {
+    if (!window.confirm(`Delete bed ${bed.bedCode}? Beds used by an admission cannot be deleted.`)) return;
+    try {
+      await api(`/beds/${bed.id}`, { method: "DELETE" });
+      setMessage(`${bed.bedCode} deleted.`);
+      load();
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : "Could not delete the bed.");
+    }
+  }
+
   async function changeState(bed: Bed, state: BedState) {
     try {
       await api(`/beds/${bed.id}/state`, { method: "PATCH", body: JSON.stringify({ state }) });
@@ -92,6 +103,9 @@ export function BedsPage() {
               )}
               {user?.role === "ADMIN" && bed.state === "OUT_OF_SERVICE" && (
                 <button className="mt-2 text-xs underline" type="button" onClick={() => void changeState(bed, "AVAILABLE")}>Return to service</button>
+              )}
+              {user?.role === "ADMIN" && bed.state !== "OCCUPIED" && (
+                <button className="mt-2 block text-xs underline" type="button" onClick={() => void remove(bed)}>Delete bed</button>
               )}
             </article>
           ))}

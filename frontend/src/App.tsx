@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./auth/AuthContext";
 import { Layout } from "./components/Layout";
 import { AdmissionsPage } from "./pages/AdmissionsPage";
+import { AuditPage } from "./pages/AuditPage";
 import { AlertsPage } from "./pages/AlertsPage";
 import { BedsPage } from "./pages/BedsPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -38,6 +39,7 @@ export function App() {
       <Route path="/recommendations" element={<Protected><RecommendationsPage /></Protected>} />
       <Route path="/forecast" element={<Protected><ForecastPage /></Protected>} />
       <Route path="/alerts" element={<Protected><AlertsPage /></Protected>} />
+      <Route path="/audit" element={<Protected><AuditPage /></Protected>} />
       <Route path="/staff" element={<Protected><StaffPage /></Protected>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

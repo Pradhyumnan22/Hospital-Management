@@ -10,6 +10,10 @@ import java.util.List;
 public interface AdmissionRepository extends JpaRepository<Admission, Long> {
     boolean existsByActivePatientKey(Long activePatientKey);
 
+    boolean existsByPatient_Id(Long patientId);
+
+    boolean existsByBed_Id(Long bedId);
+
     @EntityGraph(attributePaths = {"patient", "bed", "bed.ward"})
     List<Admission> findByStatusOrderByAdmittedAtDesc(AdmissionStatus status);
 

@@ -22,11 +22,12 @@ On this workstation PostgreSQL 18 was observed listening on port **6969** rather
 
 ```powershell
 $psql = "C:\Program Files\PostgreSQL\18\bin\psql.exe"
-& $psql -U postgres -h 127.0.0.1 -p 5432 -c "CREATE USER hospital WITH PASSWORD 'hospital';"
-& $psql -U postgres -h 127.0.0.1 -p 5432 -c "CREATE DATABASE hospital_bed OWNER hospital;"
+& $psql -U postgres -h 127.0.0.1 -p 6969 -c "CREATE USER hospital WITH PASSWORD 'hospital';"
+& $psql -U postgres -h 127.0.0.1 -p 6969 -c "CREATE DATABASE hospital_bed OWNER hospital;"
+$env:DB_URL = "jdbc:postgresql://localhost:6969/hospital_bed"
 ```
 
-Change the port if your server is not on 5432. Development defaults are in `backend/src/main/resources/application-dev.yml` and are for local use only.
+Port 5432 is the usual PostgreSQL port. This workstation listens on **6969**, so the commands above use 6969. Development defaults in `backend/src/main/resources/application-dev.yml` still use 5432 until `DB_URL` is set.
 
 Schema is applied by Flyway when the backend starts. Demo users are created only for the `dev` and `test` profiles. Clinical rows in `V3__synthea_sample.sql` come from the public [Synthea 100-patient CSV](https://github.com/synthetichealth/synthea-sample-data). Social security numbers are not imported. Visit times are placed across the last three weeks so the forecast chart has history. Cite Synthea as Walonoski et al., JAMIA, 2018, https://doi.org/10.1093/jamia/ocx079.
 

@@ -2,7 +2,10 @@ package com.hospital.bedmgmt.service;
 
 import com.hospital.bedmgmt.domain.AuditEvent;
 import com.hospital.bedmgmt.repo.AuditEventRepository;
+import com.hospital.bedmgmt.web.ApiDtos.AuditResponse;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class AuditService {
@@ -21,5 +24,19 @@ public class AuditService {
         event.setEntityId(entityId);
         event.setDetails(details);
         events.save(event);
+    }
+
+    public List<AuditResponse> latest() {
+        return events.findTop200ByOrderByCreatedAtDesc().stream()
+                .map(event -> new AuditResponse(
+                        event.getId(),
+                        event.getActor(),
+                        event.getAction(),
+                        event.getEntityType(),
+                        event.getEntityId(),
+                        event.getDetails(),
+                        event.getCreatedAt()
+                ))
+                .toList();
     }
 }

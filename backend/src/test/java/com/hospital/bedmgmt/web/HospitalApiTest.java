@@ -18,6 +18,7 @@ import java.util.Map;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -160,6 +161,32 @@ class HospitalApiTest {
                         .content("{\"state\":\"AVAILABLE\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.state").value("AVAILABLE"));
+    }
+
+    @Test
+    void deleteIsBlockedWhenHistoryExistsAndAuditIsReadable() throws Exception {
+        MockHttpSession admin = login("admin", "AdminDemo#2026");
+        String created = mockMvc.perform(post("/api/patients")
+                        .session(admin)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(patientBody("MRN-DELETE-1")))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long patientId = objectMapper.readTree(created).get("id").asLong();
+        mockMvc.perform(delete("/api/patients/" + patientId).session(admin).with(csrf()))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/audit").session(admin))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.action == 'DELETE_PATIENT')]").exists());
+
+        JsonNode patients = objectMapper.readTree(mockMvc.perform(get("/api/patients").session(admin))
+                .andReturn().getResponse().getContentAsString());
+        long seededId = patients.get(0).get("id").asLong();
+        mockMvc.perform(delete("/api/patients/" + seededId).session(admin).with(csrf()))
+                .andExpect(status().isConflict());
+        mockMvc.perform(get("/api/audit").session(login("clinical", "ClinicDemo#2026")))
+                .andExpect(status().isForbidden());
     }
 
     @Test

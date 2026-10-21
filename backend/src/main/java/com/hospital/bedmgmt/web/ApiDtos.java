@@ -148,6 +148,17 @@ public final class ApiDtos {
     ) {
     }
 
+    public record AuditResponse(
+            Long id,
+            String actor,
+            String action,
+            String entityType,
+            String entityId,
+            String details,
+            Instant createdAt
+    ) {
+    }
+
     public record NotificationResponse(
             Long id,
             String severity,

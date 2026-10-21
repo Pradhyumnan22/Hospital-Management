@@ -10,6 +10,7 @@ export function WardsPage() {
   const { user } = useAuth();
   const [rows, setRows] = useState<Ward[] | null>(null);
   const [error, setError] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState({ code: "", name: "", wardType: "GENERAL" as WardType, floorNumber: "1" });
 
   function load() {
@@ -20,15 +21,29 @@ export function WardsPage() {
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     try {
-      await api("/wards", {
-        method: "POST",
-        body: JSON.stringify({ ...form, floorNumber: Number(form.floorNumber) })
-      });
+      const body = JSON.stringify({ ...form, floorNumber: Number(form.floorNumber) });
+      if (editingId === null) {
+        await api("/wards", { method: "POST", body });
+      } else {
+        await api(`/wards/${editingId}`, { method: "PUT", body });
+      }
+      setEditingId(null);
       setForm({ code: "", name: "", wardType: "GENERAL", floorNumber: "1" });
       setError("");
       load();
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : "Could not save the ward.");
+    }
+  }
+
+  async function remove(ward: Ward) {
+    if (!window.confirm(`Delete ward ${ward.code}? This is allowed only when it has no beds.`)) return;
+    try {
+      await api(`/wards/${ward.id}`, { method: "DELETE" });
+      setError("");
+      load();
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : "Could not delete the ward.");
     }
   }
 
@@ -46,7 +61,10 @@ export function WardsPage() {
             </select>
           </Field>
           <Field label="Floor"><input className={inputClass} type="number" value={form.floorNumber} onChange={(event) => setForm({ ...form, floorNumber: event.target.value })} /></Field>
-          <div className="md:col-span-4"><button className="rounded-lg bg-teal-700 px-4 py-2 text-sm text-white" type="submit">Add ward</button></div>
+          <div className="md:col-span-4 flex gap-2">
+            <button className="rounded-lg bg-teal-700 px-4 py-2 text-sm text-white" type="submit">{editingId === null ? "Add ward" : "Save ward"}</button>
+            {editingId !== null && <button className="rounded-lg border border-slate-300 px-4 py-2 text-sm" type="button" onClick={() => { setEditingId(null); setForm({ code: "", name: "", wardType: "GENERAL", floorNumber: "1" }); }}>Cancel</button>}
+          </div>
         </form>
       )}
       {!rows ? <Empty>Loading wards…</Empty> : rows.length === 0 ? <Empty>No wards yet.</Empty> : (
@@ -56,6 +74,12 @@ export function WardsPage() {
               <p className="text-lg font-semibold">{ward.code}</p>
               <p className="text-sm text-slate-600">{ward.name}</p>
               <p className="mt-2 text-xs uppercase text-slate-500">{ward.wardType} · floor {ward.floorNumber}</p>
+              {user?.role === "ADMIN" && (
+                <div className="mt-3 flex gap-3 text-sm">
+                  <button className="text-teal-700" type="button" onClick={() => { setEditingId(ward.id); setForm({ code: ward.code, name: ward.name, wardType: ward.wardType, floorNumber: String(ward.floorNumber) }); }}>Edit</button>
+                  <button className="text-rose-700" type="button" onClick={() => void remove(ward)}>Delete</button>
+                </div>
+              )}
             </article>
           ))}
         </div>

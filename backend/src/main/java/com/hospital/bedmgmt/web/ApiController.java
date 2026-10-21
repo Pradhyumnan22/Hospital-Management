@@ -5,6 +5,7 @@ import com.hospital.bedmgmt.forecast.OccupancyForecaster.Forecast;
 import com.hospital.bedmgmt.recommendation.RecommendationModels.RecommendationResult;
 import com.hospital.bedmgmt.service.HospitalServices;
 import com.hospital.bedmgmt.web.ApiDtos.AdmissionResponse;
+import com.hospital.bedmgmt.web.ApiDtos.AuditResponse;
 import com.hospital.bedmgmt.web.ApiDtos.AllocateRequest;
 import com.hospital.bedmgmt.web.ApiDtos.BedRequest;
 import com.hospital.bedmgmt.web.ApiDtos.BedResponse;
@@ -24,12 +25,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -68,6 +71,13 @@ public class ApiController {
         return ResponseEntity.status(HttpStatus.CREATED).body(services.createPatient(request, authentication.getName()));
     }
 
+    @DeleteMapping("/patients/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','ADMISSION_STAFF')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletePatient(@PathVariable Long id, Authentication authentication) {
+        services.deletePatient(id, authentication.getName());
+    }
+
     @PutMapping("/patients/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','ADMISSION_STAFF')")
     public PatientResponse updatePatient(@PathVariable Long id, @Valid @RequestBody PatientRequest request, Authentication authentication) {
@@ -85,6 +95,13 @@ public class ApiController {
         return ResponseEntity.status(HttpStatus.CREATED).body(services.createWard(request, authentication.getName()));
     }
 
+    @DeleteMapping("/wards/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteWard(@PathVariable Long id, Authentication authentication) {
+        services.deleteWard(id, authentication.getName());
+    }
+
     @PutMapping("/wards/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public WardResponse updateWard(@PathVariable Long id, @Valid @RequestBody WardRequest request, Authentication authentication) {
@@ -100,6 +117,13 @@ public class ApiController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BedResponse> createBed(@Valid @RequestBody BedRequest request, Authentication authentication) {
         return ResponseEntity.status(HttpStatus.CREATED).body(services.createBed(request, authentication.getName()));
+    }
+
+    @DeleteMapping("/beds/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteBed(@PathVariable Long id, Authentication authentication) {
+        services.deleteBed(id, authentication.getName());
     }
 
     @PatchMapping("/beds/{id}/state")
@@ -138,6 +162,12 @@ public class ApiController {
     @GetMapping("/analytics/forecast")
     public Forecast forecast() {
         return services.forecast();
+    }
+
+    @GetMapping("/audit")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<AuditResponse> audit() {
+        return services.listAudit();
     }
 
     @GetMapping("/notifications")

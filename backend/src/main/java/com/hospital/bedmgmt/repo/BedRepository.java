@@ -17,6 +17,8 @@ public interface BedRepository extends JpaRepository<Bed, Long> {
     @Query("select b from Bed b order by b.ward.code, b.bedCode")
     List<Bed> findAllWithWard();
 
+    boolean existsByWard_Id(Long wardId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select b from Bed b where b.id = :id")
     Optional<Bed> findByIdForUpdate(@Param("id") Long id);
