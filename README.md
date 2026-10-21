@@ -42,20 +42,19 @@ Created by the development seeder. Do not reuse these passwords outside a local 
 
 ## Run locally
 
-Backend:
+`JAVA_HOME` must point at JDK 21. `scripts/start-backend.ps1` fills it when a known local JDK 21 directory exists.
 
 ```powershell
-cd backend
-.\mvnw.cmd spring-boot:run
+.\scripts\start-backend.ps1
 ```
 
-Frontend (second terminal):
+In a second terminal:
 
 ```powershell
-cd frontend
-npm install
-npm run dev
+.\scripts\start-frontend.ps1
 ```
+
+Or start each app from its own directory with `backend\mvnw.cmd spring-boot:run` and `npm run dev`.
 
 Open `http://localhost:5173`. The Vite dev server proxies `/api` to `http://localhost:8080`.
 

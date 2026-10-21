@@ -60,3 +60,9 @@ Backend tests cover eligibility, ranking, forecasting boundaries, authentication
 ## Checkpoint 13 — Verification
 
 Documented local PowerShell commands, demo accounts, and forecast limitations. Pushes are recorded only after `git push` succeeds.
+
+Local checks that passed in this workspace:
+
+- `backend\mvnw.cmd test`: 13 tests, including recommendation rules, forecast boundaries, session login, role checks, discharge, and two threads competing for one bed.
+- `frontend`: Vitest 5 tests, `npm run lint`, and `npm run build`.
+- PostgreSQL 18 is installed and listening on port 6969, but the superuser password was not available, so the running server was not migrated from this session. Flyway still ran against H2 in the test profile, and the same SQL migrations are what a local PostgreSQL database will apply on startup.
