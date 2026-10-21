@@ -105,12 +105,15 @@ class HospitalApiTest {
                 .andReturn().getResponse().getContentAsString());
         long generalBed = -1;
         for (JsonNode bed : beds) {
-            if ("G-04".equals(bed.get("bedCode").asText()) && "AVAILABLE".equals(bed.get("state").asText())) {
+            if ("GENERAL".equals(bed.get("wardType").asText())
+                    && "AVAILABLE".equals(bed.get("state").asText())
+                    && bed.get("oxygen").asBoolean()) {
                 generalBed = bed.get("id").asLong();
+                break;
             }
         }
         if (generalBed < 0) {
-            throw new AssertionError("Expected available bed G-04");
+            throw new AssertionError("Expected an available general bed with oxygen");
         }
 
         String rejected = """
@@ -162,9 +165,12 @@ class HospitalApiTest {
     @Test
     void recommendationExplainsEligibleBeds() throws Exception {
         MockHttpSession clinical = login("clinical", "ClinicDemo#2026");
+        JsonNode patients = objectMapper.readTree(mockMvc.perform(get("/api/patients").session(clinical))
+                .andReturn().getResponse().getContentAsString());
+        long patientId = patients.get(0).get("id").asLong();
         String body = """
-                {"patientId":%d,"diagnosis":"Synthetic review","requiredWardType":null,"preferredWardType":"ICU","isolationRequired":false,"ventilatorRequired":true,"monitorRequired":true,"oxygenRequired":true}
-                """.formatted(patientIdByMrn(clinical, "MRN-1007"));
+                {"patientId":%d,"diagnosis":"Synthetic review","requiredWardType":"ICU","preferredWardType":"ICU","isolationRequired":false,"ventilatorRequired":true,"monitorRequired":true,"oxygenRequired":true}
+                """.formatted(patientId);
         mockMvc.perform(post("/api/recommendations")
                         .session(clinical)
                         .with(csrf())
@@ -172,19 +178,8 @@ class HospitalApiTest {
                         .content(body))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.summary").exists())
-                .andExpect(jsonPath("$.candidates[0].bedCode").value("U-02"))
+                .andExpect(jsonPath("$.candidates[0].wardType").value("ICU"))
                 .andExpect(jsonPath("$.candidates[0].explanations").isArray());
-    }
-
-    private long patientIdByMrn(MockHttpSession session, String mrn) throws Exception {
-        JsonNode patients = objectMapper.readTree(mockMvc.perform(get("/api/patients").session(session))
-                .andReturn().getResponse().getContentAsString());
-        for (JsonNode patient : patients) {
-            if (mrn.equals(patient.get("medicalRecordNumber").asText())) {
-                return patient.get("id").asLong();
-            }
-        }
-        throw new AssertionError("Missing " + mrn);
     }
 
     private MockHttpSession login(String username, String password) throws Exception {

@@ -1,6 +1,6 @@
 # AI Hospital Management and Bed Occupancy Dashboard
 
-Academic demonstration of a hospital bed-management workflow. Patient records in this project are synthetic. Bed recommendations are advisory and are applied only after an authorized staff member confirms allocation.
+Academic demonstration of a hospital bed-management workflow. Patient rows are simulated records from MITRE's public Synthea sample, not real people. Bed recommendations are advisory and are applied only after an authorized staff member confirms allocation.
 
 ## Stack
 
@@ -28,7 +28,7 @@ $psql = "C:\Program Files\PostgreSQL\18\bin\psql.exe"
 
 Change the port if your server is not on 5432. Development defaults are in `backend/src/main/resources/application-dev.yml` and are for local use only.
 
-Schema is applied by Flyway when the backend starts. Demo users and synthetic clinical rows are created only for the `dev` and `test` profiles.
+Schema is applied by Flyway when the backend starts. Demo users are created only for the `dev` and `test` profiles. Clinical rows in `V3__synthea_sample.sql` come from the public [Synthea 100-patient CSV](https://github.com/synthetichealth/synthea-sample-data). Social security numbers are not imported. Visit times are placed across the last three weeks so the forecast chart has history. Cite Synthea as Walonoski et al., JAMIA, 2018, https://doi.org/10.1093/jamia/ocx079.
 
 ## Demo accounts
 
