@@ -28,7 +28,7 @@ describe("login form", () => {
         </AuthProvider>
       </MemoryRouter>
     );
-    expect(await screen.findByRole("heading", { name: "Hospital bed desk" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Bed management" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Sign in" }));
     expect(await screen.findByText("Enter a username and password.")).toBeInTheDocument();
   });

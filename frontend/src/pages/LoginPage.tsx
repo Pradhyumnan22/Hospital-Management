@@ -35,9 +35,9 @@ export function LoginPage() {
   return (
     <div className="grid min-h-screen place-items-center px-4">
       <form onSubmit={onSubmit} className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <p className="text-xs uppercase tracking-[0.2em] text-teal-700">Hospital operations</p>
-        <h1 className="mt-2 text-2xl font-semibold">Hospital bed desk</h1>
-        <p className="mt-2 text-sm text-slate-600">The bed assistant suggests a bed. Admission staff confirm it before anyone is allocated.</p>
+        <p className="text-xs uppercase tracking-[0.2em] text-teal-700">City General Hospital</p>
+        <h1 className="mt-2 text-2xl font-semibold">Bed management</h1>
+        <p className="mt-2 text-sm text-slate-600">Sign in to manage patients, wards, and admissions.</p>
         {error && <div className="mt-4"><Banner tone="error">{error}</Banner></div>}
         <div className="mt-4 space-y-3">
           <Field label="Username">
