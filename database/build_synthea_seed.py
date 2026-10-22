@@ -8,6 +8,7 @@ on the migration clock's recent past, which keeps the forecast window populated.
 
 import csv
 import datetime as dt
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,6 +26,11 @@ WARDS = [
 
 def sql(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
+
+
+def clean_name(value: str) -> str:
+    cleaned = re.sub(r"[0-9]+", "", value).strip()
+    return cleaned or "Unknown"
 
 
 def parse_time(value: str) -> dt.datetime | None:
@@ -176,7 +182,7 @@ def main() -> None:
         mrn[patient_id] = number
         lines.append(
             "INSERT INTO patient (medical_record_number, first_name, last_name, date_of_birth, sex, phone) VALUES "
-            f"({sql(number)}, {sql(patient['FIRST'])}, {sql(patient['LAST'])}, DATE {sql(patient['BIRTHDATE'])}, {sql(gender)}, NULL);"
+            f"({sql(number)}, {sql(clean_name(patient['FIRST']))}, {sql(clean_name(patient['LAST']))}, DATE {sql(patient['BIRTHDATE'])}, {sql(gender)}, NULL);"
         )
     lines.append("")
     for patient_id, bed, item, is_active, ward in admission_rows:

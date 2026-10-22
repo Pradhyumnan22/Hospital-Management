@@ -25,8 +25,17 @@ export function PatientsPage() {
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
+    const lettersOnly = /^[\p{L}][\p{L} '\-]*$/u;
     if (!form.medicalRecordNumber || !form.firstName || !form.lastName || !form.dateOfBirth) {
       setError("Medical record number, name, and date of birth are required.");
+      return;
+    }
+    if (!lettersOnly.test(form.firstName.trim()) || !lettersOnly.test(form.lastName.trim())) {
+      setError("First and last names can contain letters only.");
+      return;
+    }
+    if (form.phone && !/^\d+$/.test(form.phone)) {
+      setError("Phone number can contain digits only.");
       return;
     }
     setError("");

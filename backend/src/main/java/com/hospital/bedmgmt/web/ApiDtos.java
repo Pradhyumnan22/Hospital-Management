@@ -8,6 +8,7 @@ import com.hospital.bedmgmt.domain.WardType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.time.Instant;
@@ -40,11 +41,11 @@ public final class ApiDtos {
 
     public record PatientRequest(
             @NotBlank @Size(max = 32) String medicalRecordNumber,
-            @NotBlank @Size(max = 80) String firstName,
-            @NotBlank @Size(max = 80) String lastName,
+            @NotBlank @Size(max = 80) @Pattern(regexp = "^[\\p{L}][\\p{L} '\\-]*$", message = "Use letters only") String firstName,
+            @NotBlank @Size(max = 80) @Pattern(regexp = "^[\\p{L}][\\p{L} '\\-]*$", message = "Use letters only") String lastName,
             @NotNull @Past LocalDate dateOfBirth,
             @NotNull Sex sex,
-            @Size(max = 32) String phone
+            @Size(max = 32) @Pattern(regexp = "^[0-9]*$", message = "Use digits only") String phone
     ) {
     }
 

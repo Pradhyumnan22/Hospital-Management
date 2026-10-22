@@ -32,6 +32,12 @@ describe("patient and audit screens", () => {
     expect(await screen.findByRole("button", { name: "Register patient" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Register patient" }));
     expect(await screen.findByText("Medical record number, name, and date of birth are required.")).toBeInTheDocument();
+    await user.type(screen.getByRole("textbox", { name: "First name" }), "Alex1");
+    await user.type(screen.getByRole("textbox", { name: "Last name" }), "Stone");
+    await user.type(screen.getByRole("textbox", { name: "MRN" }), "MRN9001");
+    await user.type(screen.getByLabelText("Date of birth"), "1990-01-01");
+    await user.click(screen.getByRole("button", { name: "Register patient" }));
+    expect(await screen.findByText("First and last names can contain letters only.")).toBeInTheDocument();
   });
 
   it("shows an empty audit log", async () => {

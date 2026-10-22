@@ -221,7 +221,7 @@ class HospitalApiTest {
 
     private String patientBody(String mrn) {
         return """
-                {"medicalRecordNumber":"%s","firstName":"Test","lastName":"Patient","dateOfBirth":"%s","sex":"UNKNOWN","phone":"555-0199"}
+                {"medicalRecordNumber":"%s","firstName":"Test","lastName":"Patient","dateOfBirth":"%s","sex":"UNKNOWN","phone":"5550199"}
                 """.formatted(mrn, LocalDate.now().minusYears(30));
     }
 }
