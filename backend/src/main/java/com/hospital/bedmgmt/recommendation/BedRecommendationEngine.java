@@ -13,12 +13,12 @@ import static com.hospital.bedmgmt.recommendation.RecommendationModels.Recommend
 import static com.hospital.bedmgmt.recommendation.RecommendationModels.RecommendationResult;
 
 /**
- * Explainable ranking. Hard rules remove a bed before any score is applied.
- * Starting score is 100. Preferred ward match adds 20. An isolation-capable bed
- * that the patient does not need subtracts 15. Ward occupancy at or below 70%
- * adds 15, and occupancy above 70% through 85% adds 8.
+ * Eligible beds are ordered by {@link TrainedBedRanker}. Hard rules still remove a bed
+ * before the model can score it.
  */
 public final class BedRecommendationEngine {
+
+    private final TrainedBedRanker ranker = new TrainedBedRanker();
 
     public RecommendationResult recommend(RecommendationCriteria criteria, List<BedCandidate> beds) {
         List<Exclusion> exclusions = new ArrayList<>();
@@ -68,33 +68,17 @@ public final class BedRecommendationEngine {
     }
 
     private ScoredBed score(RecommendationCriteria criteria, BedCandidate bed) {
-        int score = 100;
+        boolean preferred = criteria.preferredWardType() != null && criteria.preferredWardType() == bed.wardType();
+        boolean unusedIsolation = bed.isolationCapable() && !criteria.isolationRequired();
+        double raw = ranker.score(preferred, bed.wardOccupancyPercent(), unusedIsolation);
+        int score = (int) Math.round(raw * 10.0);
         List<String> notes = new ArrayList<>();
-        notes.add("Base score 100 for passing mandatory rules");
-        if (criteria.preferredWardType() == null) {
-            notes.add("No ward preference supplied +0");
-        } else if (criteria.preferredWardType() == bed.wardType()) {
-            score += 20;
-            notes.add("Preferred ward match +20");
-        } else {
-            notes.add("Preferred ward does not match +0");
+        notes.add("Ranked by the trained bed model");
+        notes.add(preferred ? "Preferred ward matched" : "No preferred-ward match");
+        notes.add("Ward occupancy " + bed.wardOccupancyPercent() + "%");
+        if (unusedIsolation) {
+            notes.add("Unused isolation bed");
         }
-        if (bed.isolationCapable() && !criteria.isolationRequired()) {
-            score -= 15;
-            notes.add("Isolation bed kept in reserve -15");
-        } else if (criteria.isolationRequired()) {
-            notes.add("Isolation requirement matched +0");
-        }
-        int occupancyBonus;
-        if (bed.wardOccupancyPercent() <= 70.0) {
-            occupancyBonus = 15;
-        } else if (bed.wardOccupancyPercent() <= 85.0) {
-            occupancyBonus = 8;
-        } else {
-            occupancyBonus = 0;
-        }
-        score += occupancyBonus;
-        notes.add("Ward occupancy " + bed.wardOccupancyPercent() + "% adds +" + occupancyBonus);
         return new ScoredBed(bed, score, List.copyOf(notes));
     }
 

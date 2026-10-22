@@ -1,112 +1,141 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { ApiError, api } from "../api/client";
-import type { Criteria, Patient, Recommendation, WardType } from "../api/types";
+import type { Patient, Recommendation, WardType } from "../api/types";
 import { useAuth } from "../auth/AuthContext";
-import { RecommendationList } from "../components/RecommendationList";
 import { Banner, Field, PageHeader, inputClass } from "../components/ui";
 
-const types: Array<WardType | ""> = ["", "GENERAL", "ICU", "ISOLATION", "PEDIATRIC", "MATERNITY"];
+interface ChatTurn {
+  role: "staff" | "assistant";
+  text: string;
+}
 
-const empty: Criteria = {
-  patientId: 0,
-  diagnosis: "",
-  requiredWardType: "",
-  preferredWardType: "",
-  isolationRequired: false,
-  ventilatorRequired: false,
-  monitorRequired: false,
-  oxygenRequired: false
-};
+interface ChatReply {
+  reply: string;
+  diagnosis: string;
+  requiredWardType: WardType | null;
+  preferredWardType: WardType | null;
+  isolationRequired: boolean;
+  ventilatorRequired: boolean;
+  monitorRequired: boolean;
+  oxygenRequired: boolean;
+  recommendation: Recommendation;
+}
 
 export function RecommendationsPage() {
   const { user } = useAuth();
   const canAllocate = user?.role === "ADMIN" || user?.role === "ADMISSION_STAFF";
   const [patients, setPatients] = useState<Patient[]>([]);
-  const [form, setForm] = useState<Criteria>(empty);
-  const [result, setResult] = useState<Recommendation | null>(null);
+  const [patientId, setPatientId] = useState(0);
+  const [draft, setDraft] = useState("");
+  const [turns, setTurns] = useState<ChatTurn[]>([
+    { role: "assistant", text: "Hi. What's the problem? A stomach ache, chest pain, a fever, anything like that, and I'll suggest a bed." }
+  ]);
+  const [latest, setLatest] = useState<ChatReply | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [pending, setPending] = useState(false);
+  const threadRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const thread = threadRef.current;
+    if (thread) {
+      thread.scrollTop = thread.scrollHeight;
+    }
+  }, [turns, pending]);
 
   useEffect(() => {
     api<Patient[]>("/patients").then(setPatients).catch(() => setError("Could not load patients."));
   }, []);
 
-  function payload() {
-    return {
-      ...form,
-      requiredWardType: form.requiredWardType || null,
-      preferredWardType: form.preferredWardType || null
-    };
-  }
-
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!form.patientId || !form.diagnosis.trim()) {
-      setError("Choose a patient and enter a working diagnosis.");
+    if (!patientId || !draft.trim()) {
+      setError("Choose a patient and describe the bed they need.");
       return;
     }
+    const text = draft.trim();
+    const history = turns.filter((turn) => turn.role === "staff").map((turn) => turn.text);
+    setDraft("");
     setError("");
     setMessage("");
+    setTurns((current) => [...current, { role: "staff", text }]);
+    setPending(true);
     try {
-      setResult(await api<Recommendation>("/recommendations", { method: "POST", body: JSON.stringify(payload()) }));
+      const reply = await api<ChatReply>("/assistant", {
+        method: "POST",
+        body: JSON.stringify({ patientId, message: text, history })
+      });
+      setLatest(reply);
+      setTurns((current) => [...current, { role: "assistant", text: reply.reply }]);
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : "Recommendation failed.");
+      setError(caught instanceof ApiError ? caught.message : "The assistant could not answer.");
+    } finally {
+      setPending(false);
     }
   }
 
   async function allocate(bedId: number) {
+    if (!latest) {
+      return;
+    }
     try {
-      await api("/admissions", { method: "POST", body: JSON.stringify({ ...payload(), bedId }) });
-      setMessage("Bed allocated after a fresh availability check. This remains a staff decision.");
-      setResult(null);
+      await api("/admissions", {
+        method: "POST",
+        body: JSON.stringify({
+          patientId,
+          bedId,
+          diagnosis: latest.diagnosis,
+          requiredWardType: latest.requiredWardType,
+          preferredWardType: latest.preferredWardType,
+          isolationRequired: latest.isolationRequired,
+          ventilatorRequired: latest.ventilatorRequired,
+          monitorRequired: latest.monitorRequired,
+          oxygenRequired: latest.oxygenRequired
+        })
+      });
+      setMessage("Bed allocated. The assistant suggestion was confirmed by staff.");
+      setLatest(null);
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : "Allocation was rejected.");
     }
   }
 
+  const top = latest?.recommendation.candidates[0];
+
   return (
     <div>
-      <PageHeader title="Bed recommendations" subtitle="Hard rules remove beds before scoring. Confirming allocation locks the bed and checks the rules again." />
-      {error && <Banner tone="error">{error}</Banner>}
-      {message && <Banner tone="ok">{message}</Banner>}
-      <form onSubmit={onSubmit} className="mb-6 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-2">
-        <Field label="Patient">
-          <select className={inputClass} value={form.patientId || ""} onChange={(event) => setForm({ ...form, patientId: Number(event.target.value) })}>
-            <option value="">Select</option>
-            {patients.map((patient) => <option key={patient.id} value={patient.id}>{patient.medicalRecordNumber} · {patient.lastName}</option>)}
-          </select>
-        </Field>
-        <Field label="Diagnosis"><input className={inputClass} value={form.diagnosis} onChange={(event) => setForm({ ...form, diagnosis: event.target.value })} /></Field>
-        <Field label="Required ward type">
-          <select className={inputClass} value={form.requiredWardType} onChange={(event) => setForm({ ...form, requiredWardType: event.target.value as WardType | "" })}>
-            {types.map((type) => <option key={type || "any"} value={type}>{type || "Any"}</option>)}
-          </select>
-        </Field>
-        <Field label="Preferred ward type">
-          <select className={inputClass} value={form.preferredWardType} onChange={(event) => setForm({ ...form, preferredWardType: event.target.value as WardType | "" })}>
-            {types.map((type) => <option key={`p-${type || "none"}`} value={type}>{type || "None"}</option>)}
-          </select>
-        </Field>
-        <div className="flex flex-wrap gap-3 text-sm md:col-span-2">
-          {(["isolationRequired", "ventilatorRequired", "monitorRequired", "oxygenRequired"] as const).map((key) => (
-            <label key={key} className="flex items-center gap-1">
-              <input type="checkbox" checked={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.checked })} />
-              {key.replace("Required", "")}
-            </label>
+      <PageHeader title="Bed assistant" subtitle="Describe the problem in ordinary words. The assistant suggests a bed, and you confirm it." />
+      {error && <div className="mx-auto mb-3 max-w-2xl"><Banner tone="error">{error}</Banner></div>}
+      {message && <div className="mx-auto mb-3 max-w-2xl"><Banner tone="ok">{message}</Banner></div>}
+      <section className="mx-auto flex h-[calc(100vh-11rem)] max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm">
+        <div ref={threadRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+          {turns.map((turn, index) => (
+            <div key={`${turn.role}-${index}`} className={turn.role === "staff" ? "ml-auto max-w-[80%] rounded-2xl bg-teal-700 px-4 py-3 text-sm text-white" : "mr-auto max-w-[80%] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800"}>
+              {turn.text}
+            </div>
           ))}
+          {pending && <p className="text-sm text-slate-500">Looking that up…</p>}
         </div>
-        <div><button className="rounded-lg bg-teal-700 px-4 py-2 text-sm text-white" type="submit">Rank beds</button></div>
-      </form>
-      {result && (
-        <div className="space-y-4">
-          <RecommendationList result={result} />
-          {canAllocate && result.candidates.map((bed) => (
-            <button key={bed.bedId} className="mr-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" type="button" onClick={() => void allocate(bed.bedId)}>
-              Confirm {bed.bedCode}
+        <form onSubmit={onSubmit} className="space-y-3 border-t border-slate-200 bg-white p-4">
+          {top && canAllocate && (
+            <button className="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white" type="button" onClick={() => void allocate(top.bedId)}>
+              Confirm {top.bedCode}
             </button>
-          ))}
-        </div>
-      )}
+          )}
+          <Field label="Patient">
+            <select className={inputClass} value={patientId || ""} onChange={(event) => setPatientId(Number(event.target.value))}>
+              <option value="">Select</option>
+              {patients.map((patient) => <option key={patient.id} value={patient.id}>{patient.medicalRecordNumber} · {patient.lastName}</option>)}
+            </select>
+          </Field>
+          <div className="flex gap-2">
+            <input className={inputClass} value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="She has a stomach ache" aria-label="Message" />
+            <button className="shrink-0 rounded-lg bg-teal-700 px-4 py-2 text-sm text-white disabled:opacity-60" type="submit" disabled={pending}>
+              Send
+            </button>
+          </div>
+        </form>
+      </section>
     </div>
   );
 }

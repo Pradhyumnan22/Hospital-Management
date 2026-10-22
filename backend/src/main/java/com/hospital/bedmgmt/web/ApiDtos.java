@@ -14,6 +14,7 @@ import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public final class ApiDtos {
     private ApiDtos() {
@@ -157,6 +158,13 @@ public final class ApiDtos {
             String entityId,
             String details,
             Instant createdAt
+    ) {
+    }
+
+    public record ChatRequest(
+            @NotNull Long patientId,
+            @NotBlank @Size(max = 500) String message,
+            @Size(max = 20) List<@Size(max = 500) String> history
     ) {
     }
 

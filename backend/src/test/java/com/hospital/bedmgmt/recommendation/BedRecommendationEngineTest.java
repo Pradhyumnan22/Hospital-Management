@@ -53,10 +53,10 @@ class BedRecommendationEngineTest {
         assertEquals(3, result.candidates().size());
         assertEquals("G-04", result.candidates().get(0).bedCode());
         assertTrue(result.candidates().get(0).score() > result.candidates().get(1).score());
-        assertTrue(result.candidates().get(0).explanations().stream().anyMatch(line -> line.contains("Preferred ward match +20")));
+        assertTrue(result.candidates().get(0).explanations().stream().anyMatch(line -> line.contains("trained bed model")));
         assertTrue(result.exclusions().stream().anyMatch(exclusion -> exclusion.reason().contains("oxygen")));
         assertEquals("I-02", result.candidates().get(2).bedCode());
-        assertTrue(result.candidates().get(2).explanations().stream().anyMatch(line -> line.contains("Isolation bed kept in reserve -15")));
+        assertTrue(result.candidates().get(2).explanations().stream().anyMatch(line -> line.contains("Unused isolation")));
     }
 
     @Test

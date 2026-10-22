@@ -37,7 +37,7 @@ export function LoginPage() {
       <form onSubmit={onSubmit} className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
         <p className="text-xs uppercase tracking-[0.2em] text-teal-700">Hospital operations</p>
         <h1 className="mt-2 text-2xl font-semibold">Hospital bed desk</h1>
-        <p className="mt-2 text-sm text-slate-600">Recommendations stay advisory until admission staff confirm a bed.</p>
+        <p className="mt-2 text-sm text-slate-600">The bed assistant suggests a bed. Admission staff confirm it before anyone is allocated.</p>
         {error && <div className="mt-4"><Banner tone="error">{error}</Banner></div>}
         <div className="mt-4 space-y-3">
           <Field label="Username">

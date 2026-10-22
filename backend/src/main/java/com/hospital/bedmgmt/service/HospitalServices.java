@@ -17,6 +17,7 @@ import com.hospital.bedmgmt.forecast.OccupancyCalculator.WardOccupancy;
 import com.hospital.bedmgmt.forecast.OccupancyForecaster;
 import com.hospital.bedmgmt.forecast.OccupancyForecaster.DailyFlow;
 import com.hospital.bedmgmt.forecast.OccupancyForecaster.Forecast;
+import com.hospital.bedmgmt.recommendation.ClinicalChatAssistant;
 import com.hospital.bedmgmt.recommendation.BedRecommendationEngine;
 import com.hospital.bedmgmt.recommendation.RecommendationModels.BedCandidate;
 import com.hospital.bedmgmt.recommendation.RecommendationModels.RecommendationCriteria;
@@ -68,6 +69,7 @@ public class HospitalServices {
     private final AuditService audit;
     private final PasswordEncoder passwordEncoder;
     private final BedRecommendationEngine engine = new BedRecommendationEngine();
+    private final ClinicalChatAssistant assistant = new ClinicalChatAssistant();
 
     public HospitalServices(
             PatientRepository patients,
@@ -245,6 +247,56 @@ public class HospitalServices {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Diagnosis is required");
         }
         return engine.recommend(criteria(request), candidates());
+    }
+
+    @Transactional(readOnly = true)
+    public ChatReply chat(Long patientId, java.util.List<String> history, String message) {
+        Patient patient = requirePatient(patientId);
+        String transcript = transcript(history, message);
+        ClinicalChatAssistant.ParsedRequest parsed = assistant.read(transcript);
+        boolean ready = assistant.ready(transcript);
+        RecommendationResult result = ready
+                ? engine.recommend(parsed.criteria(), candidates())
+                : new RecommendationResult(java.util.List.of(), java.util.List.of(), "Still gathering details.");
+        String reply = assistant.respond(patient.getFirstName(), history, message, result).reply();
+        RecommendationCriteria criteria = parsed.criteria();
+        String diagnosis = message.trim();
+        if (history != null && !history.isEmpty()) {
+            diagnosis = String.join(" ", history) + " " + diagnosis;
+            if (diagnosis.length() > 255) {
+                diagnosis = diagnosis.substring(0, 255);
+            }
+        }
+        return new ChatReply(reply, diagnosis, criteria.requiredWardType(), criteria.preferredWardType(),
+                criteria.isolationRequired(), criteria.ventilatorRequired(), criteria.monitorRequired(), criteria.oxygenRequired(), result);
+    }
+
+    private String transcript(java.util.List<String> history, String message) {
+        StringBuilder combined = new StringBuilder();
+        if (history != null) {
+            for (String turn : history) {
+                if (turn != null && !turn.isBlank()) {
+                    combined.append(turn).append('\n');
+                }
+            }
+        }
+        if (message != null) {
+            combined.append(message);
+        }
+        return combined.toString();
+    }
+
+    public record ChatReply(
+            String reply,
+            String diagnosis,
+            com.hospital.bedmgmt.domain.WardType requiredWardType,
+            com.hospital.bedmgmt.domain.WardType preferredWardType,
+            boolean isolationRequired,
+            boolean ventilatorRequired,
+            boolean monitorRequired,
+            boolean oxygenRequired,
+            RecommendationResult recommendation
+    ) {
     }
 
     @Transactional

@@ -207,6 +207,41 @@ class HospitalApiTest {
                 .andExpect(jsonPath("$.summary").exists())
                 .andExpect(jsonPath("$.candidates[0].wardType").value("ICU"))
                 .andExpect(jsonPath("$.candidates[0].explanations").isArray());
+
+        mockMvc.perform(post("/api/assistant")
+                        .session(clinical)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"patientId":%d,"message":"Needs an ICU bed with a ventilator and oxygen"}
+                                """.formatted(patientId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reply").exists())
+                .andExpect(jsonPath("$.requiredWardType").value("ICU"))
+                .andExpect(jsonPath("$.ventilatorRequired").value(true))
+                .andExpect(jsonPath("$.recommendation.candidates[0].wardType").value("ICU"));
+
+        mockMvc.perform(post("/api/assistant")
+                        .session(clinical)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"patientId":%d,"message":"She has a stomach ache"}
+                                """.formatted(patientId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.requiredWardType").value("GENERAL"))
+                .andExpect(jsonPath("$.reply", org.hamcrest.Matchers.containsString("general")));
+
+        mockMvc.perform(post("/api/assistant")
+                        .session(clinical)
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"patientId":%d,"message":"Not able to walk normally due to hip injury"}
+                                """.formatted(patientId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.requiredWardType").value("GENERAL"))
+                .andExpect(jsonPath("$.recommendation.candidates[0].bedCode").exists());
     }
 
     private MockHttpSession login(String username, String password) throws Exception {

@@ -11,6 +11,8 @@ import com.hospital.bedmgmt.web.ApiDtos.BedRequest;
 import com.hospital.bedmgmt.web.ApiDtos.BedResponse;
 import com.hospital.bedmgmt.web.ApiDtos.BedStateRequest;
 import com.hospital.bedmgmt.web.ApiDtos.CreateStaffRequest;
+import com.hospital.bedmgmt.service.HospitalServices.ChatReply;
+import com.hospital.bedmgmt.web.ApiDtos.ChatRequest;
 import com.hospital.bedmgmt.web.ApiDtos.CriteriaRequest;
 import com.hospital.bedmgmt.web.ApiDtos.DischargeRequest;
 import com.hospital.bedmgmt.web.ApiDtos.NotificationResponse;
@@ -152,6 +154,11 @@ public class ApiController {
     @PostMapping("/recommendations")
     public RecommendationResult recommend(@Valid @RequestBody CriteriaRequest request) {
         return services.recommend(request);
+    }
+
+    @PostMapping("/assistant")
+    public ChatReply assistant(@Valid @RequestBody ChatRequest request) {
+        return services.chat(request.patientId(), request.history(), request.message());
     }
 
     @GetMapping("/analytics/overview")

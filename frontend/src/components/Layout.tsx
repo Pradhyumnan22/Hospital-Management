@@ -21,7 +21,7 @@ const links = [
   { to: "/wards", label: "Wards", icon: Building2, end: false },
   { to: "/beds", label: "Beds", icon: BedDouble, end: false },
   { to: "/admissions", label: "Admissions", icon: Stethoscope, end: false },
-  { to: "/recommendations", label: "Recommendations", icon: Sparkles, end: false },
+  { to: "/recommendations", label: "Assistant", icon: Sparkles, end: false },
   { to: "/forecast", label: "Forecast", icon: Activity, end: false },
   { to: "/alerts", label: "Alerts", icon: Bell, end: false }
 ];
