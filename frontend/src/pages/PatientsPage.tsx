@@ -69,7 +69,7 @@ export function PatientsPage() {
 
   return (
     <div>
-      <PageHeader title="Patients" subtitle="Synthetic records only. Registration is limited to admission staff and administrators." />
+      <PageHeader title="Patients" subtitle="Registration is limited to admission staff and administrators." />
       {error && <Banner tone="error">{error}</Banner>}
       {message && <Banner tone="ok">{message}</Banner>}
       {canEdit && (

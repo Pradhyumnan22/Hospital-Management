@@ -35,7 +35,7 @@ export function LoginPage() {
   return (
     <div className="grid min-h-screen place-items-center px-4">
       <form onSubmit={onSubmit} className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <p className="text-xs uppercase tracking-[0.2em] text-teal-700">Synthetic demo</p>
+        <p className="text-xs uppercase tracking-[0.2em] text-teal-700">Hospital operations</p>
         <h1 className="mt-2 text-2xl font-semibold">Hospital bed desk</h1>
         <p className="mt-2 text-sm text-slate-600">Recommendations stay advisory until admission staff confirm a bed.</p>
         {error && <div className="mt-4"><Banner tone="error">{error}</Banner></div>}
